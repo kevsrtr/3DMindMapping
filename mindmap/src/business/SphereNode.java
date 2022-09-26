@@ -1,19 +1,12 @@
 package business;
 
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import javafx.scene.shape.Sphere;
 import javafx.scene.text.Text;
 
 
 public class SphereNode extends ShapeNode {
-	Sphere sphere;
-	
-	
-	
-	Text text;
 	
 	
 	public SphereNode(Note note){
@@ -27,8 +20,6 @@ public class SphereNode extends ShapeNode {
 		type = 1;
 		
 	}
-	
-	
 	
 	
 }
