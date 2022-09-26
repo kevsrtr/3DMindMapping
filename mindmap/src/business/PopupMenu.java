@@ -1,7 +1,5 @@
 package business;
 
-
-
 import javafx.geometry.Side;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Menu;
@@ -15,8 +13,6 @@ public class PopupMenu {
 
 	public ContextMenu popup;
 	private ShapeNode node;
-
-	
 	public  Menu editText = new Menu("Edit Text");
 	public  Menu connect = new Menu("Connect");
 	public  Menu delete = new Menu("Delete");
@@ -69,11 +65,7 @@ public class PopupMenu {
 	}
 
 	public void connect() {
-
-		
-
-		ConnectUtility.connect(node, ShapeNode.getTarget());
-
+	ConnectUtility.connect(node, ShapeNode.getTarget());
 	}
 
 	public void setHandleDelete() {
