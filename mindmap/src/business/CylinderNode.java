@@ -3,9 +3,7 @@ package business;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import javafx.scene.shape.Cylinder;
-
 import javafx.scene.text.Text;
 
 
