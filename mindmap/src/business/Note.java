@@ -2,8 +2,6 @@ package business;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-
-
 import javafx.scene.Group;
 import javafx.scene.SubScene;
 import persistence.Database;
