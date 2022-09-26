@@ -2,10 +2,8 @@ package business;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-
-
 import persistence.Database;
-//singleton
+
 public class NoteBook{
 	private static NoteBook noteBook = null;
 	private ArrayList<Note> notes = new ArrayList<Note>(5);
@@ -16,13 +14,12 @@ public class NoteBook{
 
 	
 	
-	public static NoteBook getInstance()
-    {
+	public static NoteBook getInstance() {
         if (noteBook == null)
             noteBook = new NoteBook();
   
         return noteBook;
-    }
+       }
 	
 	public static void getSavedNotes() {
 		try {
