@@ -1,0 +1,106 @@
+package business;
+
+import java.util.ArrayList;
+
+
+import javafx.scene.Group;
+import javafx.scene.SubScene;
+import persistence.DatabaseService;
+
+public class Note {
+	protected ArrayList<ShapeNode> elements = new ArrayList<ShapeNode>(20);
+	protected ArrayList<Integer> elementIds = new ArrayList<Integer>(20);
+	private Group group;
+	private SubScene subscene;
+	private String name;
+	private static int noteCounter=-1;//save to a text file;
+	private int id;
+	
+	public Note(SubScene subScene){
+	
+		id = ++noteCounter;
+		this.subscene = subScene;
+		System.out.println("creating note" +id );
+	}
+	
+	public Note(SubScene subScene,int id, String name) {
+		this.subscene = subScene;
+		this.id = id;
+		this.name = name;
+		
+	}
+	
+	public Note(int id,String name) {
+		this.id = id;
+		this.name = name;
+	}
+	
+	public void save() {
+		try {
+			DatabaseService.saveNote(this);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public Group getGroup() {
+		return group;
+	}
+	public void setGroup(Group group) {
+		this.group = group;
+	}
+	public SubScene getSubscene() {
+		return subscene;
+	}
+	public void setSubscene(SubScene subscene) {
+		this.subscene = subscene;
+	}
+	
+	public ArrayList<ShapeNode> getElements() {
+		return elements;
+	}
+
+	public void setElements(ArrayList<ShapeNode> elements) {
+		this.elements = elements;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public static int getNoteCounter() {
+		return noteCounter;
+	}
+
+	public static void setNoteCounter(int noteCounter) {
+		Note.noteCounter = noteCounter;
+	}
+
+	
+	public ArrayList<Integer> getElementIds() {
+		return elementIds;
+	}
+
+	public void setElementIds(ArrayList<Integer> elementIds) {
+		this.elementIds = elementIds;
+	}
+	
+	
+	
+	
+	
+}

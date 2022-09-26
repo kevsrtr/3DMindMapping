@@ -1,0 +1,121 @@
+package service;
+
+
+import java.util.ArrayList;
+
+
+import javafx.scene.input.MouseButton;
+import model.ShapeNode;
+
+
+public class DragDropService {//singleton yap
+	private ShapeNode shapeNode;
+//	private double initialXPosition;
+//	private double initialYPosition;
+	
+	public double offsetX;
+	public double offsetY;
+	
+	
+	public DragDropService(ShapeNode node) {
+		this.shapeNode = node;
+	}
+
+
+//	public boolean flag = false; 
+	
+/*	public void setInitialPosition() {
+		initialXPosition = shapeNode.getNode().getTranslateX();
+		initialYPosition = shapeNode.getNode().getTranslateY();
+	}
+
+	
+	public void getOffset(MouseEvent event) {
+		offsetX = event.getSceneX() - initialXPosition;
+		offsetY = event.getSceneY() - initialYPosition;
+	}*/
+	
+	public void makeDraggable() {
+		
+
+	//	shapeNode.getNode().setOnDragExited( event -> flag=false);
+		shapeNode.getNode().setOnMousePressed(event ->
+		{	
+			if(event.getButton() == MouseButton.PRIMARY)
+			
+			shapeNode.getNote().getSubscene().getCamera().translateZProperty().set(shapeNode.getNode().translateZProperty().doubleValue());
+		});
+		
+		
+		
+		shapeNode.getNode().setOnMouseDragged(event -> {
+			//flag=true;
+			
+			
+	/*		shapeNode.getNode().translateXProperty().addListener((observable, oldValue, newValue) -> {
+				if(newValue.intValue()<50) {
+					shapeNode.getNode().translateXProperty().set(oldValue.doubleValue());
+				}
+			});
+			
+			
+			shapeNode.getNode().translateYProperty().addListener((observable, oldValue, newValue) -> {
+				if(newValue.intValue()<0) {
+					shapeNode.getNode().translateYProperty().set(oldValue.doubleValue());
+				}
+			});
+			
+		*/	
+			
+			shapeNode.getNode().setTranslateX(event.getSceneX());
+			shapeNode.getNode().setTranslateY(event.getSceneY());
+			shapeNode.getNode().setTranslateZ(shapeNode.getNote().getSubscene().getCamera().translateZProperty().doubleValue());
+			
+			//re-bond the nodes 
+			//1-get the connections
+			//2-delete old bonds with connections from ShapeNode and currentGroup
+			//3-create new bonds
+			ArrayList<ShapeNode> list = new ArrayList<ShapeNode>(shapeNode.getConnections().size());
+			shapeNode.getConnections().forEach(node -> { list.add(node);});
+			
+			
+			//bağlı nodeların hem bond hem connection listesinden shapeNodu çıkar
+			shapeNode.getConnections().forEach(connection ->{
+
+				int index = connection.getConnections().indexOf(shapeNode);
+				
+				connection.getConnections().remove(index);
+				connection.getBonds().remove(index);
+
+			});
+			
+			//remove bonds from screen(group)
+			shapeNode.getBonds().forEach(bond -> shapeNode.getNote().getGroup().getChildren().remove(shapeNode.getNote().getGroup().getChildren().indexOf(bond)));
+			//remove node's data
+			shapeNode.getBonds().clear();
+			shapeNode.getConnections().clear();
+			
+			//set new connections.
+			
+			list.forEach(node -> ConnectService.connect(shapeNode, node));
+			
+
+			event.consume();
+		});//setOnMouseDraggedEvent
+
+		
+/*		home.getCurrentSubScene().setOnKeyPressed(event -> {
+			if(flag==true) {
+			if(event.getCode().equals(KeyCode.W)|| event.getCode().equals(KeyCode.S)) {
+				shapeNode.getNode().setTranslateZ(home.getcurrentCamera().translateZProperty().doubleValue());
+			
+			}
+			}
+		});*/
+		
+		
+		
+	}
+
+}
+

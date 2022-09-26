@@ -1,0 +1,417 @@
+package persistence;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import business.BoxNode;
+import business.ConnectUtility;
+import business.CylinderNode;
+import business.Note;
+import business.NoteBook;
+import business.ShapeNode;
+import business.SphereNode;
+import javafx.scene.Group;
+import javafx.scene.control.MenuItem;
+
+import java.sql.DatabaseMetaData;
+
+
+
+public class DatabaseService {
+	public static Statement st;
+	public static ResultSet rs;
+	public static Connection con;
+	public static PreparedStatement pst;
+	public static int connectionCounter;
+	
+	public static  Connection createConnection()  {
+		String url = "jdbc:derby:mm;create=true";
+		try {
+			Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+			con = DriverManager.getConnection(url);
+			
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+		return con;
+		
+	}
+	
+	public static void initialWorks() throws SQLException, ClassNotFoundException {
+		String notes = "NOTES";
+		String shapeNodes = "SHAPENODES";
+		String connections ="CONNECTIONS";
+		
+		DatabaseMetaData dbm = createConnection().getMetaData();
+		st = con.createStatement();
+		rs = dbm.getTables(null, null, notes, null);
+		if(!rs.next()) {
+			st.execute("CREATE TABLE NOTES(NOTEID INTEGER NOT NULL PRIMARY KEY,"
+					+ "NAME VARCHAR(15) NOT NULL)");
+			
+			
+		}
+
+		rs = dbm.getTables(null, null, shapeNodes, null);
+		if(!rs.next()) {
+			st.execute("CREATE TABLE SHAPENODES(ID INTEGER NOT NULL PRIMARY KEY,"
+					+"NOTEID INTEGER NOT NULL,"
+					+ "SHAPE INTEGER NOT NULL, XPOS DOUBLE NOT NULL, YPOS DOUBLE NOT NULL,"
+					+"ZPOS DOUBLE NOT NULL, LABEL VARCHAR(70), TEXTAREA VARCHAR(300),"
+					+ "FOREIGN KEY(NOTEID) REFERENCES NOTES(NOTEID) ON DELETE CASCADE)");
+			
+		}
+		
+		rs = dbm.getTables(null, null, connections, null);
+		if(!rs.next()) {
+			st.execute("CREATE TABLE CONNECTIONS(ID INTEGER NOT NULL PRIMARY KEY,"
+					+"STARTID INTEGER NOT NULL,ENDID INTEGER NOT NULL,NOTEID INTEGER NOT NULL,"
+					+ "FOREIGN KEY(NOTEID) REFERENCES NOTES(NOTEID) ON DELETE CASCADE)");
+
+			
+		}
+
+		
+		con.close();
+		setPrimaryKeys();
+	}
+	//save the current Note 
+		public static void saveNote(Note note) throws InterruptedException, ClassNotFoundException {
+			try {
+				deleteOldRecords(note);
+				deleteConnections(note);
+				
+				Thread.sleep(1000);
+				st = createConnection().createStatement();
+			
+				
+				
+				String query = "INSERT INTO NOTES VALUES("+ note.getId()+",'"+note.getName() + "')";
+				st.execute(query);
+				
+				
+				
+				
+				
+						
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			finally {
+				try {
+					con.close();
+					saveShapes(note);
+					saveConnections(note);
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+		}
+		
+		private static void deleteOldRecords(Note note)  {
+			String query = "DELETE FROM NOTES WHERE NOTEID="+note.getId();
+			try {
+				st = createConnection().createStatement();
+				st.execute(query);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			
+				try {
+					st.close();
+					con.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+				
+			
+			
+			
+	
+		}
+		
+		private static void deleteConnections(Note note){
+			String query = "DELETE FROM CONNECTIONS WHERE NOTEID="+note.getId();
+			try {
+				st = createConnection().createStatement();
+				st.execute(query);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+				try {
+					st.close();
+					con.close();
+				} catch (SQLException e) {
+					
+					e.printStackTrace();
+				}
+				
+			
+			
+			
+			
+			
+			
+		}
+
+
+		public static void saveShapes(Note note) throws ClassNotFoundException {
+
+			try {
+
+				
+				//add new records
+				pst = createConnection().prepareStatement("INSERT INTO SHAPENODES VALUES(?,?,?,?,?,?,?,?) ");
+				System.out.println("saving shapes: " + note.getElementIds().toString());
+				System.out.println("saving shapes: " + note.getElements().toString());
+				note.getElements().forEach(shape -> {
+					System.out.println("shape: " + shape.getId());
+					try {
+						pst.setInt(1, shape.getId());
+						pst.setInt(2, shape.getNote().getId());
+						pst.setInt(3, shape.getType());
+						pst.setDouble(4, shape.getNode().getTranslateX());
+						pst.setDouble(5, shape.getNode().getTranslateY());
+						pst.setDouble(6, shape.getNode().getTranslateZ());
+						pst.setString(7,shape.getLabel().getText());
+						pst.setString(8,shape.getTextExtra().getText());
+						
+						pst.addBatch();
+						
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+				});
+				
+				
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}finally {
+			try {
+				pst.executeBatch();
+				pst.clearBatch();
+				pst.close();
+				con.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+		public static void saveConnections(Note note) throws ClassNotFoundException {
+			
+
+			int noteId = note.getId();
+			try {
+				
+				pst = createConnection().prepareStatement("INSERT INTO CONNECTIONS(ID,STARTID, ENDID, NOTEID) VALUES(?,?,?,?)");
+				note.getElements().forEach(node ->{
+					node.getConnections().forEach(con -> {
+						System.out.println("there are connections");
+						if(node.getId()<con.getId()) {
+							try {
+								pst.setInt(1, ++connectionCounter);
+								pst.setInt(2,node.getId());
+								pst.setInt(3,con.getId());
+								pst.setInt(4, noteId);
+								System.out.println("Connection: Note:"+ noteId + " startid:" +node.getId()+ " endid:"+con.getId());
+								pst.addBatch();
+							} catch (SQLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							
+						}
+						
+					});
+					
+				});
+				
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			
+				try {
+					pst.executeBatch();
+					pst.close();
+					con.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+			
+			
+		}
+		
+		
+		public static void setPrimaryKeys() throws ClassNotFoundException {
+			
+			String query1 = "SELECT MAX(NOTEID) FROM NOTES";
+			String query2 = "SELECT MAX(ID) FROM SHAPENODES";
+			String query3 = "SELECT MAX(ID) FROM CONNECTIONS";
+			try {
+				st = createConnection().createStatement();
+				rs = st.executeQuery(query1);
+				if(rs.next())
+					Note.setNoteCounter(rs.getInt(1));
+				System.out.println("MAX NOTEID:" + rs.getInt(1) );
+				rs = st.executeQuery(query2);
+				if(rs.next())
+					ShapeNode.setShapeCounter(rs.getInt(1));
+				System.out.println("MAX shapeId:" + rs.getInt(1) );
+				rs = st.executeQuery(query3);
+				if(rs.next())
+					DatabaseService.connectionCounter=rs.getInt(1);
+				System.out.println("MAX connectionId:" + rs.getInt(1) );
+				
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+				try {
+					st.close();
+					con.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+				
+			
+			
+		}
+		
+		public static void loadShapeNodes() throws ClassNotFoundException  {
+			
+			try {
+				
+				pst = createConnection().prepareStatement("SELECT * FROM SHAPENODES WHERE NOTEID=?");
+				System.out.println("adasd" + NoteBook.getInstance().getnotes().toString());
+				
+				NoteBook.getInstance().getnotes().forEach(note -> {				
+					try {
+						pst.setInt(1, note.getId());
+						rs = pst.executeQuery();
+						while(rs.next()) {
+							System.out.println("Loading shape:" + rs.getInt(1));
+							switch( rs.getInt(3)) {
+							case 1:
+								new SphereNode(rs,note);
+								break;
+							case 2:
+								new CylinderNode(rs,note);
+								break;
+							case 3:
+								new BoxNode(rs,note);
+								break;
+							}
+								
+						}
+						
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+					
+					
+				});
+				
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			try {
+				pst.close();
+				con.close();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		
+			
+		}
+		
+		public static void loadConnections() throws ClassNotFoundException {
+			try {
+				
+				
+				pst = createConnection().prepareStatement("SELECT * FROM CONNECTIONS WHERE NOTEID=?");
+				NoteBook.getInstance().getnotes().forEach(note -> {
+					try {
+						pst.setInt(1, note.getId());
+						rs = pst.executeQuery();
+						while(rs.next()) {
+							ConnectUtility.connect(note.getElements().get(note.getElementIds().indexOf(rs.getInt(2))), note.getElements().get(note.getElementIds().indexOf(rs.getInt(3))));
+							System.out.println("??????");
+						}
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				});
+				
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			
+		}
+		
+		public static void deleteNote(Note note) throws SQLException, ClassNotFoundException {
+			st = createConnection().createStatement();
+			String query = "DELETE FROM NOTES WHERE NOTEID=" +note.getId();
+			st.execute(query);
+			con.close();
+			
+		}
+		
+		
+		
+		public static void loadNotes() throws ClassNotFoundException {
+			String query = "SELECT * FROM NOTES";	
+			try {
+				con = createConnection();
+				st = con.createStatement();
+				rs = st.executeQuery(query);
+				while(rs.next()){
+					
+					Note note  = new Note(rs.getInt(1),rs.getString(2));
+					NoteBook.getInstance().getnotes().add(note);
+					
+				}//while
+					
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		
+		
+			
+		}
+
+
+
+
+
+
+
+
+
+
+
+}

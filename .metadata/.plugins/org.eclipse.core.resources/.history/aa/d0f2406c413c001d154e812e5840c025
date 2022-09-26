@@ -1,0 +1,30 @@
+package business;
+
+import java.util.ArrayList;
+//singleton
+public class NoteBook {
+	private static NoteBook noteBook = null;
+	private ArrayList<Note> notes = new ArrayList<Note>(5);
+	
+	private NoteBook() {
+		
+	}
+
+	public ArrayList<Note> getnotes() {
+		return notes;
+	}
+
+	public void setnotes(ArrayList<Note> notebook) {
+		this.notes = notebook;
+	}
+	
+	public static NoteBook getInstance()
+    {
+        if (noteBook == null)
+            noteBook = new NoteBook();
+  
+        return noteBook;
+    }
+	
+}
+

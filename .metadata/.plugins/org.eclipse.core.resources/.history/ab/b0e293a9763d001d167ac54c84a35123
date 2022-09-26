@@ -1,0 +1,473 @@
+package ui;
+
+
+import java.net.URISyntaxException;
+import java.util.Optional;
+import javafx.concurrent.Task;
+import business.CameraSettings;
+import persistence.DatabaseService;
+import javafx.application.Application;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.geometry.Pos;
+import javafx.scene.Camera;
+import javafx.scene.Group;
+import javafx.scene.PerspectiveCamera;
+import javafx.scene.Scene;
+import javafx.scene.SceneAntialiasing;
+import javafx.scene.SubScene;
+import javafx.scene.control.Button;
+import javafx.scene.control.*;
+
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
+import javafx.scene.text.Font;
+import javafx.stage.Popup;
+import javafx.stage.Screen;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import javafx.util.Duration;
+import business.BoxNode;
+import business.CylinderNode;
+import business.Note;
+import business.NoteBook;
+import business.SphereNode;
+
+public class Home extends Application {
+	
+	public static final int screen_height = (int) Screen.getPrimary().getBounds().getHeight();
+	public static final  int screen_width = (int) Screen.getPrimary().getBounds().getWidth();
+	private Camera currentCamera;
+	private Note currentNote;
+	private ScrollPane pane;
+	private Label labelX;
+	private Label labelY;
+	private Label labelZ;
+	private NoteBook noteBook;
+	private MenuButton chooseNote;
+	private MenuItem currentSelected;
+	private Label noteLabel;
+	private Thread saveThread;
+	private Thread deleteThread;
+	private MenuButton addNodeButton = new MenuButton();
+	private Button deleteButton = new Button();
+	private Button saveButton = new Button();
+	
+	
+
+	public static void main(String[] args) {
+		
+		launch(args);
+
+	}
+
+	@Override
+	public void start(Stage primaryStage) throws Exception {
+		
+		BorderPane borderPane = new BorderPane();
+    	Scene scene = new Scene(borderPane,screen_width,screen_height);
+    	
+		
+		scene.getStylesheets().add("ui/stylesheet.css");
+		
+		NoteBook.createNoteBookInDB();
+		
+		setWindowSize(primaryStage);
+		
+		//to show mouse position 
+		Label x = new Label("X:");
+		Label y = new Label("Y:");
+		Label z = new Label("Z:");
+		
+		x.setTextFill(Paint.valueOf("ffffff"));
+    	y.setTextFill(Paint.valueOf("ffffff"));
+    	z.setTextFill(Paint.valueOf("ffffff"));
+		
+		
+    	labelX = new Label();
+    	labelY = new Label(); 
+    	labelZ = new Label();
+    	
+    	labelX.setTextFill(Paint.valueOf("ffffff"));
+    	labelY.setTextFill(Paint.valueOf("ffffff"));
+    	labelZ.setTextFill(Paint.valueOf("ffffff"));
+    	
+    	GridPane mPosition = new GridPane();
+    	mPosition.setVgap(5); 
+    	mPosition.setHgap(5);       
+    	mPosition.addRow(1, x,labelX);
+    	mPosition.addRow(2, y,labelY);
+    	mPosition.addRow(3, z, labelZ);
+    	mPosition.setAlignment(Pos.BOTTOM_LEFT);
+    	
+    	
+    	
+    	
+		SubScene homeScene = new SubScene(addVideo(),screen_width,screen_height);
+
+		pane = new ScrollPane();
+		
+		borderPane.setCenter(pane);
+		pane.setContent(homeScene);
+		VBox menu = new VBox(40);
+		menu.setAlignment(Pos.TOP_CENTER);
+		menu.setPrefWidth(screen_height/9);
+		menu.getStyleClass().add("vBox");
+		
+		
+		
+		BorderPane.setAlignment(menu,Pos.CENTER);
+		borderPane.setLeft(menu);
+		borderPane.getLeft().maxWidth(screen_width/13);
+		
+	
+		
+		
+		//create button for home page 
+		Button homePageButton = new Button();
+		setPopup(homePageButton,"Home Page");
+		homePageButton.getStyleClass().add("home-button");
+		homePageButton.setPickOnBounds(true);
+		noteLabel = new Label("");
+		Font font = new Font(20);
+		noteLabel.setStyle(" -fx-background-color:	#ffffff;");
+		noteLabel.setTextFill(Paint.valueOf("#002f6c"));
+		noteLabel.setWrapText(true);
+		noteLabel.setFont(font);
+		
+		homePageButton.setOnAction(event -> { 
+			
+			pane.setContent(homeScene);
+			noteLabel.setText(null);
+			
+		    
+		});
+		
+		
+        //add info for button
+        setPopup(AddNodeButton,"Add Elements");
+        AddNodeButton.getStyleClass().add("add-element-button");
+
+        
+ 
+        // create menuitems for node adding
+        MenuItem sphereButton = new MenuItem("Sphere");
+        MenuItem cylinderButton = new MenuItem("Cylinder");
+        MenuItem boxButton = new MenuItem("Box");
+        
+ 
+        // add menu items to Add Node button
+        AddNodeButton.getItems().add(sphereButton);
+        AddNodeButton.getItems().add(cylinderButton);
+        AddNodeButton.getItems().add(boxButton);
+        
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.initStyle(StageStyle.UNDECORATED);		
+		dialog.setHeaderText(null);
+		dialog.setGraphic(null);
+		dialog.setContentText("Enter the Note Name:");
+		
+	//	dialog.getDialogPane().setBackground(Background.fill(Paint.valueOf("#5d99c6")));
+		
+         
+        noteBook = NoteBook.getInstance();
+		
+		chooseNote = new MenuButton();
+		setPopup(chooseNote,"Choose Note");
+		chooseNote.getStyleClass().add("choose-note");
+		
+		//get the user's saved data
+		showSavedNotes(chooseNote,primaryStage,borderPane);
+			
+		
+		//create NoTe button
+        Button noteButton = new Button();
+        setPopup(noteButton,"Create Note");
+        noteButton.getStyleClass().add("create-note");
+        noteButton.setOnAction(event -> {
+        	MenuItem menuItem = new MenuItem();
+        	
+        	Optional<String> result = dialog.showAndWait();
+			
+        	result.ifPresent(name -> {
+        		menuItem.setText(name);
+        		noteLabel.setText(name);
+
+        		Group group = new Group();
+            	
+            	Note note  = new Note(setNewSubScene(createSubScene(group)));
+            	note.setGroup(group);
+            	note.setName(name);
+            	currentNote = note;
+            	noteBook.getnotes().add(note); 
+        		chooseNote.getItems().add(menuItem);
+        		
+        		menuItem.onActionProperty().set(e -> {
+        			currentSelected = menuItem;
+					setNewSubScene(note.getSubscene());
+					currentNote = note;
+					noteLabel.setText(currentNote.getName());
+        		
+
+        		});
+        	});
+
+
+        });//create new note 
+        
+        
+        //info for delete button
+        setPopup(deleteButton,"Delete the current Note");
+        
+        deleteButton.getStyleClass().add("delete-button");
+        deleteButton.setPickOnBounds(true);
+        
+        deleteButton.setOnAction(event -> {
+        	System.out.println("deleting note");
+			pane.setContent(homeScene);
+			noteLabel.setText("Home Page");
+			chooseNote.getItems().remove(currentSelected);
+			currentNote.getGroup().getChildren().clear();
+			deleteThread = new Thread(() ->  {
+				currentNote.getElements().clear();
+	        	noteBook.getnotes().remove(currentNote);       	
+				currentNote.delete();
+
+				try{ Thread.sleep(6000); }
+				catch (InterruptedException e1) {e1.printStackTrace();}
+        	});
+        	
+        	
+        	deleteThread.start();
+        		
+					
+
+        });
+ 
+        //save button info
+        setPopup(saveButton,"Save the current Note");
+
+        saveButton.getStyleClass().add("save-button");
+        
+        
+        saveButton.setOnAction(e -> {
+        	
+        		
+        	saveThread = new Thread(() ->  {
+        		currentNote.save();	
+        		try{ Thread.sleep(6000); }
+				catch (InterruptedException e1) {e1.printStackTrace();}
+        		System.out.println("Program is exited");
+        	});
+        	
+        	saveThread.start();
+        	
+        	
+        				
+        	
+		});
+        
+        
+		menu.getChildren().addAll(noteLabel,homePageButton,noteButton,chooseNote,saveButton,AddNodeButton,deleteButton,mPosition);
+		
+		/////Add Node Operation
+		sphereButton.setOnAction(event -> new SphereNode(currentNote));
+		boxButton.setOnAction(event -> new BoxNode(currentNote));
+		cylinderButton.setOnAction(event -> new CylinderNode(currentNote));
+	
+		primaryStage.minWidthProperty().set(screen_width/2);
+		primaryStage.minHeightProperty().set(screen_height/1.5);
+		primaryStage.maxHeightProperty().set(screen_height);
+		primaryStage.maxWidthProperty().set(screen_width);
+		
+		
+		primaryStage.setTitle("3D MindMaping");
+		primaryStage.setScene(scene);
+		primaryStage.show();
+	}
+	
+	
+
+	private void setWindowSize(Stage primaryStage) {
+		primaryStage.setHeight(screen_height);
+    	primaryStage.setWidth(screen_width);
+    	primaryStage.setTitle("Home Page");
+		
+	}
+
+	public SubScene createSubScene(Group group) {
+	//	currentGroup = group;
+		
+	
+		SubScene temp = new SubScene(group,screen_width-(screen_width/13),screen_height,true,SceneAntialiasing.BALANCED);
+			
+		temp.setFill(Color.web("#e0e0e0"));
+		
+		return temp;
+	}
+	public SubScene setNewSubScene(SubScene scene) {
+		
+	
+	
+		pane.setContent(scene);
+			
+		currentCamera = new PerspectiveCamera();
+		scene.setCamera(currentCamera);
+		pane.addEventHandler(KeyEvent.KEY_PRESSED,new CameraSettings(currentCamera));
+		
+		
+		scene.setOnMouseMoved(event -> { 
+			
+			labelX.textProperty().bind(new SimpleStringProperty(((Double)event.getSceneX()).toString()));
+			labelY.textProperty().bind(new SimpleStringProperty(((Double)event.getSceneY()).toString()));
+			labelZ.textProperty().bind(new SimpleStringProperty(((Double)scene.getCamera().getTranslateZ()).toString()));
+		});	
+		
+		return scene;
+		
+	}
+
+	
+	
+	public void showSavedNotes(MenuButton mb,Stage stage,BorderPane menu) throws ClassNotFoundException {
+     
+			NoteBook.getSavedNotes();
+			NoteBook.getInstance().getnotes().forEach(note -> {
+				MenuItem menuItem = new MenuItem();
+				Group group = new Group();
+				note.setGroup(group);
+				note.setSubscene(createSubScene(group));
+				menuItem.setText(note.getName());
+				mb.getItems().add(menuItem);
+				menuItem.onActionProperty().set(e -> {
+					currentSelected = menuItem;
+					setNewSubScene(note.getSubscene());
+					currentNote = note;
+					noteLabel.setText(currentNote.getName());
+					
+				});
+					
+					
+			});
+			NoteBook.getSavedShapes();
+			NoteBook.getSavedConenctions();
+			
+			
+	}
+	
+	public void setPopup(Button button, String buttonName) {
+		Label label= new Label(buttonName); 
+        label.setTextFill(Paint.valueOf("#ffffff"));
+        Popup popup = new Popup();
+        label.setStyle(" -fx-background-color:	#01579b;");
+        popup.getContent().add(label);
+        
+        
+      button.setOnMouseMoved(event -> {
+        	popup.show(button, button.getLayoutX() , button.getLayoutY()+80);
+        	
+        	
+        });
+        
+        button.setOnMouseExited(event -> {
+        	popup.hide();
+        	
+        });
+		
+	}
+	
+	
+	//info for menu buttons
+	public void setPopup(MenuButton button, String buttonName) {
+		Label label= new Label(buttonName); 
+        label.setTextFill(Paint.valueOf("#ffffff"));
+        Popup popup = new Popup();
+        label.setStyle(" -fx-background-color:	#01579b;");
+        popup.getContent().add(label);
+        
+        
+      button.setOnMouseMoved(event -> {
+        	popup.show(button, button.getLayoutX() , button.getLayoutY()+80);
+        	
+        	
+        });
+        
+        button.setOnMouseExited(event -> {
+        	popup.hide();
+        	
+        });
+		
+	}
+	public VBox addVideo() throws URISyntaxException {
+		
+
+		
+		// create a Media object from the File Object
+		Media media = new Media(getClass().getResource("tutorial.mp4").toURI().toString());
+		
+		
+		// create a MediaPlayer object from the Media Object
+		MediaPlayer mp = new MediaPlayer(media);
+		// create a MediaView object from the MediaPlayer Object
+		MediaView mv = new MediaView(mp);
+		// create the buttons
+		Button play = new Button();
+		play.getStyleClass().add("play-button");
+		Button pause = new Button();
+		pause.getStyleClass().add("pause-button");
+		Button resume = new Button();
+		resume.getStyleClass().add("resume-button");
+		// create and configure an HBox to hold the buttons
+		HBox buttonBox = new HBox(20);
+		buttonBox.setAlignment(Pos.CENTER);
+		buttonBox.getChildren().addAll(play, pause, resume);
+		// add event handlers to the buttons
+		play.setOnAction(e -> {
+		mp.seek(Duration.millis(0));
+		mp.play();
+		}
+		);
+		pause.setOnAction(e -> mp.pause());
+		resume.setOnAction(e-> mp.play());
+		// create the root container, and add it to
+		VBox root = new VBox(20);
+		root.setAlignment(Pos.CENTER);
+		root.getChildren().addAll(mv, buttonBox);
+		return root;
+	}
+	
+	public Note getCurrentNote() {
+		return currentNote;
+	}
+
+	public void setCurrentNote(Note currentNote) {
+		this.currentNote = currentNote;
+	}
+
+	public Camera getcurrentCamera() {
+		return currentCamera;
+	}
+
+	public void setCamera(Camera camera) {
+		this.currentCamera = camera;
+	}
+
+	public int getScreen_height() {
+		return screen_height;
+	}
+
+	public int getScreen_width() {
+		return screen_width;
+	}
+	
+
+}
+
+
