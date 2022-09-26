@@ -2,17 +2,13 @@ package business;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-
 import business.DragUtility;
 import business.PopupMenu;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextFormatter;
-
-
 import javafx.scene.shape.Cylinder;
 import javafx.scene.text.Font;
 
