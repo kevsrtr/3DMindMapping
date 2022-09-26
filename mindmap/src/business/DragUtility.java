@@ -1,13 +1,11 @@
 package business;
 
-
 import java.util.ArrayList;
-
 import javafx.scene.input.MouseButton;
 import business.ShapeNode;
 
 
-public class DragUtility {//singleton yap
+public class DragUtility {
 
 	private DragUtility() {
 
