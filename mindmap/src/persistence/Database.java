@@ -86,15 +86,8 @@ public class Database {
 			Thread.sleep(1000);
 			st = createConnection().createStatement();
 
-
-
 			String query = "INSERT INTO NOTES VALUES("+ note.getId()+",'"+note.getName() + "')";
 			st.execute(query);
-
-
-
-
-
 
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -129,10 +122,6 @@ public class Database {
 			e.printStackTrace();
 		}
 
-
-
-
-
 	}
 
 	private static void deleteConnections(Note note){
@@ -153,19 +142,12 @@ public class Database {
 			e.printStackTrace();
 		}
 
-
-
-
-
-
-
 	}
 
 
 	public static void saveShapes(Note note) throws ClassNotFoundException {
 
 		try {
-
 
 			//add new records
 			pst = createConnection().prepareStatement("INSERT INTO SHAPENODES VALUES(?,?,?,?,?,?,?,?) ");
@@ -249,8 +231,6 @@ public class Database {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
-
 
 	}
 
@@ -398,18 +378,7 @@ public class Database {
 			e.printStackTrace();
 		}
 
-
-
 	}
-
-
-
-
-
-
-
-
-
 
 
 }
