@@ -110,6 +110,8 @@ public class ShapeNode {
 		textExtra.setText(rs.getString(8));//set the extra of the node.
 		this.popup = new PopupMenu(this);
 		DragUtility.makeDraggable(this);
+		
+		textEdit.setText(rs.getString(7));
 
 	}
 
